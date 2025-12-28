@@ -762,7 +762,7 @@ function parseCountries(config) {
 
 function buildCountryProxyGroups({ countries, landing, loadBalance }) {
   const groups = [];
-  const baseExcludeFilter = "0\\.[0-5]|低倍率|省流|大流量|实验性";
+  const baseExcludeFilter = "低倍率|省流|大流量";
   const landingExcludeFilter = "(?i)家宽|家庭|家庭宽带|商宽|商业宽带|星链|Starlink|落地";
   const groupType = loadBalance ? "load-balance" : "url-test";
 
