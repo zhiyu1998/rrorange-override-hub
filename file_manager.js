@@ -3,7 +3,6 @@ RrOrange 的 Substore 订阅转换脚本
 https://github.com/zhiyu1998/rrorange-override-hub
 
 支持的传入参数：
-- loadbalance: 启用负载均衡（url-test/load-balance，默认 false）
 - landing: 启用落地节点功能（如机场家宽/星链/落地分组，默认 false）
 - ipv6: 启用 IPv6 支持（默认 false）
 - full: 输出完整配置（适合纯内核启动，默认 false）
@@ -36,13 +35,12 @@ function parseNumber(value, defaultValue = 0) {
  * @param {object} args - 传入的原始参数对象，如 $arguments。
  * @returns {object} - 包含所有功能开关状态的对象。
  *
- * 该函数通过一个 `spec` 对象定义了外部参数名（如 `loadbalance`）到内部变量名（如 `loadBalance`）的映射关系。
+ * 该函数通过一个 `spec` 对象定义了外部参数名（如 `keepalive`）到内部变量名（如 `keepAliveEnabled`）的映射关系。
  * 它会遍历 `spec` 中的每一项，对 `args` 对象中对应的参数值调用 `parseBool` 函数进行布尔化处理，
  * 并将结果存入返回的对象中。
  */
 function buildFeatureFlags(args) {
   const spec = {
-    loadbalance: "loadBalance",
     landing: "landing",
     ipv6: "ipv6Enabled",
     full: "fullConfig",
@@ -64,7 +62,6 @@ function buildFeatureFlags(args) {
 
 const rawArgs = typeof $arguments !== 'undefined' ? $arguments : {};
 const {
-  loadBalance,
   landing,
   ipv6Enabled,
   fullConfig,
@@ -760,11 +757,10 @@ function parseCountries(config) {
 }
 
 
-function buildCountryProxyGroups({ countries, landing, loadBalance }) {
+function buildCountryProxyGroups({ countries, landing }) {
   const groups = [];
   const baseExcludeFilter = "低倍率|省流|大流量";
   const landingExcludeFilter = "(?i)家宽|家庭|家庭宽带|商宽|商业宽带|星链|Starlink|落地";
-  const groupType = loadBalance ? "load-balance" : "url-test";
 
   for (const country of countries) {
     const meta = countriesMeta[country];
@@ -776,17 +772,8 @@ function buildCountryProxyGroups({ countries, landing, loadBalance }) {
       "include-all": true,
       "filter": meta.pattern,
       "exclude-filter": landing ? `${landingExcludeFilter}|${baseExcludeFilter}` : baseExcludeFilter,
-      "type": groupType
+      "type": "select"
     };
-
-    if (!loadBalance) {
-      Object.assign(groupConfig, {
-        "url": "https://cp.cloudflare.com/generate_204",
-        "interval": 60,
-        "tolerance": 20,
-        "lazy": false
-      });
-    }
 
     groups.push(groupConfig);
   }
@@ -1133,8 +1120,8 @@ function main(config) {
     defaultFallback
   } = buildBaseLists({ landing, lowCost, countryGroupNames });
 
-  // 为地区构建对应的 url-test / load-balance 组
-  const countryProxyGroups = buildCountryProxyGroups({ countries, landing, loadBalance });
+  // 为地区构建对应的 select 组
+  const countryProxyGroups = buildCountryProxyGroups({ countries, landing });
 
   // 生成代理组
   const proxyGroups = buildProxyGroups({
